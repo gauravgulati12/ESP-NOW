@@ -1,0 +1,78 @@
+#include <esp_now.h>
+#include <WiFi.h>
+
+//Enter MAC Address of your ESP32 HOST
+uint8_t broadcastAddress[] = {0x08, 0xD1, 0xF9, 0x38, 0x1A, 0xB8};
+
+// Structure to send data
+typedef struct struct_message {
+    int id;
+    bool buttonPressed;
+} struct_message;
+
+// Create a struct_message to send data
+struct_message myData;
+
+// Create peer interface
+esp_now_peer_info_t peerInfo;
+
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+
+
+void setup() {
+    // Initialize Serial Monitor
+    Serial.begin(115200);
+
+    // Set device as a Wi-Fi Station
+    WiFi.mode(WIFI_STA);
+    Serial.println("ESP-NOW Transmitter1");//Set according to your transmitter sequence
+
+    // Init ESP-NOW
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
+
+    esp_now_register_send_cb(OnDataSent);
+
+    // Set the MAC address of the receiver
+    //uint8_t broadcastAddress[] = {0x24, 0x0A, 0xC4, 0x08, 0xD2, 0x4A}; // Replace with receiver MAC address
+
+    // Register peer
+   // esp_now_peer_info_t peerInfo;
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = 0;  
+    peerInfo.encrypt = false;
+    
+    // Add peer
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+        Serial.println("Failed to add peer");
+        return;
+    }
+
+    // Initialize button
+    pinMode(4, INPUT_PULLUP); // Assuming button is connected to GPIO4
+
+    // Assign a unique ID to each transmitter
+    myData.id = 1; // Change to 2 for the second transmitter
+}
+
+void loop() {
+    // Read button state
+    myData.buttonPressed = (digitalRead(4) == LOW); // Button pressed if LOW
+
+    // Send message via ESP-NOW
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+
+    if (result == ESP_OK) {
+        Serial.println("Sent with success");
+    } else {
+        Serial.println("Error sending the data");
+    }
+
+    delay(200); // Delay to avoid flooding the network
+}
