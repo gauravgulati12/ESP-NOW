@@ -1,0 +1,98 @@
+#include <esp_now.h>
+#include <WiFi.h>
+
+// Structure to receive data
+typedef struct struct_message {
+    int id;
+    bool buttonPressed;
+} struct_message;
+
+// Create a struct_message to hold incoming data
+struct_message myData;
+
+// Structures to hold data from board1, board2, board3, board4
+struct_message board1Data;
+struct_message board2Data;
+struct_message board3Data;
+struct_message board4Data;
+
+
+// IDs for the boards
+const int BOARD1_ID = 1;
+const int BOARD2_ID = 2;
+const int BOARD3_ID = 3;
+const int BOARD4_ID = 4;
+
+// Callback function when data is received
+void OnDataRecv(const esp_now_recv_info *recv_info,  const uint8_t *incomingData, int len) {
+    memcpy(&myData, incomingData, sizeof(myData));
+
+    Serial.print("Bytes received: ");
+    Serial.println(len);
+    Serial.print("Transmitter ID: ");
+    Serial.println(myData.id);
+    Serial.print("Button Pressed: ");
+    Serial.println(myData.buttonPressed);
+
+    // Handle data based on transmitter ID
+    if (myData.id == BOARD1_ID) {
+        board1Data = myData;
+        // Control the LED based on button state from board1
+        if (board1Data.buttonPressed) {
+            digitalWrite(17, HIGH); // Turn on LED for board1
+        } else {
+            digitalWrite(17, LOW); // Turn off LED for board1
+        }
+    } else if (myData.id == BOARD2_ID) {
+        board2Data = myData;
+        // Control another LED based on button state from board2
+        if (board2Data.buttonPressed) {
+            digitalWrite(16, HIGH); // Turn on LED for board2
+        } else {
+            digitalWrite(16, LOW); // Turn off LED for board2
+        }
+    } else if (myData.id == BOARD3_ID) {
+        board3Data = myData;
+        // Control another LED based on button state from board3
+        if (board3Data.buttonPressed) {
+            digitalWrite(12, HIGH); // Turn on LED for board3
+        } else {
+            digitalWrite(12, LOW); // Turn off LED for board3
+        }
+    } else if (myData.id == BOARD4_ID) {
+        board4Data = myData;
+        // Control another LED based on button state from board4
+        if (board4Data.buttonPressed) {
+            digitalWrite(13, HIGH); // Turn on LED for board4
+        } else {
+            digitalWrite(13, LOW); // Turn off LED for board4
+        }
+    }
+}
+void setup() {
+    // Initialize Serial Monitor
+    Serial.begin(115200);
+
+    // Set device as a Wi-Fi Station
+    WiFi.mode(WIFI_STA);
+    Serial.println("ESP-NOW Receiver");
+
+    // Init ESP-NOW
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
+
+    // Register receive callback function
+    esp_now_register_recv_cb(OnDataRecv);
+
+    // Initialize LEDs
+    pinMode(17, OUTPUT); // Assuming LED for board1 is connected to GPIO17
+    pinMode(16, OUTPUT); // Assuming LED for board2 is connected to GPIO16
+    pinMode(12, OUTPUT); // Assuming LED for board2 is connected to GPIO12
+    pinMode(13, OUTPUT); // Assuming LED for board2 is connected to GPIO13
+}
+
+void loop() {
+    // Nothing to do here
+}
